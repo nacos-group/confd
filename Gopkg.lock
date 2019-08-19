@@ -327,7 +327,7 @@
   version = "1.0.1"
 
 [[projects]]
-  digest = "1:f98a94042134f2cfd02b919a2f9fd63fb33abff238b325927f9bbb11446fc61b"
+  digest = "1:5bc9c8dca478f3decbd27b082939a71d6b985b01e30dc5205ed12588ef7b1ac3"
   name = "github.com/nacos-group/nacos-sdk-go"
   packages = [
     "clients",
@@ -346,7 +346,8 @@
     "vo",
   ]
   pruneopts = "UT"
-  revision = "4dd8d9c71ef131e22e9182f0094e4cfa2f677b23"
+  revision = "650d9580bed22238495ea6ee9eac4e293db729e5"
+  version = "0.1.0"
 
 [[projects]]
   digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"

@@ -66,6 +66,8 @@ func (br *BeatReactor) sendInstanceBeat(k string, beatInfo *model.BeatInfo) {
 		if err != nil {
 			log.Printf("[ERROR]:beat to server return error:%s \n", err.Error())
 			br.beatThreadSemaphore.Release()
+			t := time.NewTimer(beatInfo.Period)
+			<-t.C
 			continue
 		}
 		if beatInterval > 0 {
