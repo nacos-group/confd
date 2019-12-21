@@ -87,6 +87,7 @@ func (client *Client) GetValues(keys []string) (map[string]string, error) {
 		k = replacer.Replace(k)
 
 		if strings.HasPrefix(k, "naming.") {
+			k = strings.TrimPrefix(k, "naming.")
 			instances, err := client.namingClient.SelectAllInstances(vo.SelectAllInstancesParam{
 				ServiceName: k,
 				GroupName:   client.group,
