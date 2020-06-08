@@ -80,7 +80,7 @@
   revision = "bf1c66bbce23153d89b23f8960071a680dbef54b"
 
 [[projects]]
-  digest = "1:ead5408d2d7324cbfd56920f27afcecef7b019bb3e93586cff5ca113a10b1ee9"
+  digest = "1:e816f33301633e37e4966ca70fa60a8357c1de1bb0e603683d8abcc7a4a3fda9"
   name = "github.com/coreos/etcd"
   packages = [
     "auth/authpb",
@@ -201,7 +201,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:45aad874d3c7d5e8610427c81870fb54970b981692930ec2a319ce4cb89d7a00"
+  digest = "1:07aebcfa3f8b07d58c5a21ca48c31dd048c94b91c67ba93b26a5f225b5f5fcdb"
   name = "github.com/hashicorp/go-rootcerts"
   packages = ["."]
   pruneopts = "UT"
@@ -327,7 +327,7 @@
   version = "1.0.1"
 
 [[projects]]
-  digest = "1:f98a94042134f2cfd02b919a2f9fd63fb33abff238b325927f9bbb11446fc61b"
+  digest = "1:5a9ea213a42c1571401cd779b6399fd3ebfb777b0fc8413b43c328ff518c3e77"
   name = "github.com/nacos-group/nacos-sdk-go"
   packages = [
     "clients",
@@ -340,13 +340,15 @@
     "common/logger",
     "common/nacos_error",
     "common/nacos_server",
+    "common/security",
     "common/util",
     "model",
     "utils",
     "vo",
   ]
   pruneopts = "UT"
-  revision = "4dd8d9c71ef131e22e9182f0094e4cfa2f677b23"
+  revision = "fd4d0533b3eedf75fbab2a2b98d34c32ca33d0ad"
+  version = "v0.3.2"
 
 [[projects]]
   digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
@@ -372,12 +374,12 @@
   revision = "c4fab1ac1bec58281ad0667dc3f0907a9476ac47"
 
 [[projects]]
-  digest = "1:274f67cb6fed9588ea2521ecdac05a6d62a8c51c074c1fccc6a49a40ba80e925"
+  branch = "master"
+  digest = "1:a3b8912deeef29007fab9a13a9f21b9e9b59c621a2ed61e2fe7b37320a71fbd5"
   name = "github.com/satori/go.uuid"
   packages = ["."]
   pruneopts = "UT"
-  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
-  version = "v1.2.0"
+  revision = "b2ce2384e17bbe0c6d34077efa39dbab3e09123b"
 
 [[projects]]
   branch = "master"
@@ -570,6 +572,7 @@
     "github.com/nacos-group/nacos-sdk-go/utils",
     "github.com/nacos-group/nacos-sdk-go/vo",
     "github.com/samuel/go-zookeeper/zk",
+    "github.com/satori/go.uuid",
     "github.com/sirupsen/logrus",
     "github.com/xordataexchange/crypt/encoding/secconf",
     "golang.org/x/net/context",

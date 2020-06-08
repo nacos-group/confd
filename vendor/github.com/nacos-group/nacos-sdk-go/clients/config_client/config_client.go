@@ -9,24 +9,21 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	"github.com/nacos-group/nacos-sdk-go/common/nacos_error"
 	"github.com/nacos-group/nacos-sdk-go/common/util"
+	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/utils"
 	"github.com/nacos-group/nacos-sdk-go/vo"
 
-
-	"io/ioutil"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
 )
 
 type ConfigClient struct {
 	nacos_client.INacosClient
-	kmsClient 	   *kms.Client
+	kmsClient      *kms.Client
 	localConfigs   []vo.ConfigParam
 	mutex          sync.Mutex
 	configProxy    ConfigProxy
@@ -55,9 +52,9 @@ func NewConfigClient(nc nacos_client.INacosClient) (ConfigClient, error) {
 	config.configCacheDir = clientConfig.CacheDir + string(os.PathSeparator) + "config"
 	config.configProxy, err = NewConfigProxy(serverConfig, clientConfig, httpAgent)
 	if clientConfig.OpenKMS {
-		kmsClient,err := kms.NewClientWithAccessKey(clientConfig.RegionId, clientConfig.AccessKey, clientConfig.SecretKey)
+		kmsClient, err := kms.NewClientWithAccessKey(clientConfig.RegionId, clientConfig.AccessKey, clientConfig.SecretKey)
 		if err != nil {
-			return config,err
+			return config, err
 		}
 		config.kmsClient = kmsClient
 	}
@@ -105,12 +102,12 @@ func (client *ConfigClient) decrypt(dataId, content string) (string, error) {
 		request.CiphertextBlob = content
 		response, err := client.kmsClient.Decrypt(request)
 		if err != nil {
-			return "", errors.New("ksm decrypt failed")
+			return "", errors.New("kms decrypt failed")
 		}
 		content = response.Plaintext
 	}
 
-	return content,nil
+	return content, nil
 }
 
 func (client *ConfigClient) getConfigInner(param vo.ConfigParam) (content string, err error) {
@@ -201,22 +198,15 @@ func (client *ConfigClient) AddConfigToListen(params []vo.ConfigParam) (err erro
 func (client *ConfigClient) ListenConfig(param vo.ConfigParam) (err error) {
 	go func() {
 		for {
-			clientConfig, serverConfigs, agent, err := client.sync()
-			// 创建计时器
-			var timer *time.Timer
-			if err == nil {
-				timer = time.NewTimer(time.Duration(clientConfig.ListenInterval) * time.Millisecond)
-			}
-			client.listenConfigTask(clientConfig, serverConfigs, agent, param)
-			<-timer.C
+			clientConfig, _ := client.GetClientConfig()
+			client.listenConfigTask(clientConfig, param)
 		}
 	}()
 
 	return nil
 }
 
-func (client *ConfigClient) listenConfigTask(clientConfig constant.ClientConfig,
-	serverConfigs []constant.ServerConfig, agent http_agent.IHttpAgent, param vo.ConfigParam) {
+func (client *ConfigClient) listenConfigTask(clientConfig constant.ClientConfig, param vo.ConfigParam) {
 	var listeningConfigs string
 	// 检查&拼接监听参数
 	client.mutex.Lock()
@@ -257,55 +247,22 @@ func (client *ConfigClient) listenConfigTask(clientConfig constant.ClientConfig,
 	params := make(map[string]string)
 	params[constant.KEY_LISTEN_CONFIGS] = listeningConfigs
 	var changed string
-
-	for _, serverConfig := range client.configProxy.GetServerList() {
-		path := client.buildBasePath(serverConfig) + "/listener"
-		changedTmp, err := listen(agent, path, clientConfig.TimeoutMs, clientConfig.ListenInterval, params)
-		if err == nil {
+	changedTmp, err := client.configProxy.ListenConfig(params, tenant, clientConfig.AccessKey, clientConfig.SecretKey)
+	if err == nil {
+		changed = changedTmp
+	} else {
+		if _, ok := err.(*nacos_error.NacosError); ok {
 			changed = changedTmp
-			break
 		} else {
-			if _, ok := err.(*nacos_error.NacosError); ok {
-				changed = changedTmp
-				break
-			} else {
-				log.Println("[client.ListenConfig] listen config error:", err.Error())
-			}
+			log.Println("[client.ListenConfig] listen config error:", err.Error())
 		}
 	}
-
 	if strings.ToLower(strings.Trim(changed, " ")) == "" {
 		log.Println("[client.ListenConfig] no change")
 	} else {
 		log.Print("[client.ListenConfig] config changed:" + changed)
 		client.updateLocalConfig(changed, param)
 	}
-}
-
-func listen(agent http_agent.IHttpAgent, path string,
-	timeoutMs uint64, listenInterval uint64,
-	params map[string]string) (changed string, err error) {
-	header := map[string][]string{
-		"Content-Type":         {"application/x-www-form-urlencoded"},
-		"Long-Pulling-Timeout": {strconv.FormatUint(listenInterval, 10)},
-	}
-	log.Println("[client.ListenConfig] request url:", path, " ;params:", params, " ;header:", header)
-	var response *http.Response
-	response, err = agent.Post(path, header, timeoutMs, params)
-	if err == nil {
-		bytes, errRead := ioutil.ReadAll(response.Body)
-		defer response.Body.Close()
-		if errRead != nil {
-			err = errRead
-		} else {
-			if response.StatusCode == 200 {
-				changed = string(bytes)
-			} else {
-				err = nacos_error.NewNacosError(strconv.Itoa(response.StatusCode), string(bytes), nil)
-			}
-		}
-	}
-	return
 }
 
 func (client *ConfigClient) updateLocalConfig(changed string, param vo.ConfigParam) {
@@ -381,4 +338,36 @@ func (client *ConfigClient) buildBasePath(serverConfig constant.ServerConfig) (b
 	basePath = "http://" + serverConfig.IpAddr + ":" +
 		strconv.FormatUint(serverConfig.Port, 10) + serverConfig.ContextPath + constant.CONFIG_PATH
 	return
+}
+
+func (client *ConfigClient) SearchConfig(param vo.SearchConfigParm) (*model.ConfigPage, error) {
+	return client.searchConfigInnter(param)
+}
+
+func (client *ConfigClient) searchConfigInnter(param vo.SearchConfigParm) (*model.ConfigPage, error) {
+	if param.Search != "accurate" && param.Search != "blur" {
+		return nil, errors.New("[client.searchConfigInnter] param.search must be accurate or blur")
+	}
+	if param.PageNo <= 0 {
+		param.PageNo = 1
+	}
+	if param.PageSize <= 0 {
+		param.PageSize = 10
+	}
+	clientConfig, _ := client.GetClientConfig()
+	configItems, err := client.configProxy.SearchConfigProxy(param, clientConfig.NamespaceId, clientConfig.AccessKey, clientConfig.SecretKey)
+	if err != nil {
+		log.Printf("[ERROR] search config from server error:%s ", err.Error())
+		if _, ok := err.(*nacos_error.NacosError); ok {
+			nacosErr := err.(*nacos_error.NacosError)
+			if nacosErr.ErrorCode() == "404" {
+				return nil, errors.New("config not found")
+			}
+			if nacosErr.ErrorCode() == "403" {
+				return nil, errors.New("get config forbidden")
+			}
+		}
+		return nil, err
+	}
+	return configItems, nil
 }
