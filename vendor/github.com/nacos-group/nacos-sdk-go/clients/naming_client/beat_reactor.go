@@ -43,7 +43,7 @@ func buildKey(serviceName string, ip string, port uint64) string {
 func (br *BeatReactor) AddBeatInfo(serviceName string, beatInfo model.BeatInfo) {
 	log.Printf("[INFO] adding beat: <%s> to beat map.\n", utils.ToJsonString(beatInfo))
 	k := buildKey(serviceName, beatInfo.Ip, beatInfo.Port)
-	br.beatMap.Set(k, beatInfo)
+	br.beatMap.Set(k, &beatInfo)
 	go br.sendInstanceBeat(k, &beatInfo)
 }
 
@@ -61,22 +61,24 @@ func (br *BeatReactor) RemoveBeatInfo(serviceName string, ip string, port uint64
 func (br *BeatReactor) sendInstanceBeat(k string, beatInfo *model.BeatInfo) {
 	for {
 		br.beatThreadSemaphore.Acquire()
-		//进行心跳通信
-		beatInterval, err := br.serviceProxy.SendBeat(*beatInfo)
-		if err != nil {
-			log.Printf("[ERROR]:beat to server return error:%s \n", err.Error())
-			br.beatThreadSemaphore.Release()
-			continue
-		}
-		if beatInterval > 0 {
-			beatInfo.Period = time.Duration(time.Millisecond.Nanoseconds() * beatInterval)
-		}
-
 		//如果当前实例注销，则进行停止心跳
 		if beatInfo.Stopped {
 			log.Printf("[INFO] intance[%s] stop heartBeating\n", k)
 			br.beatThreadSemaphore.Release()
 			return
+		}
+
+		//进行心跳通信
+		beatInterval, err := br.serviceProxy.SendBeat(*beatInfo)
+		if err != nil {
+			log.Printf("[ERROR]:beat to server return error:%s \n", err.Error())
+			br.beatThreadSemaphore.Release()
+			t := time.NewTimer(beatInfo.Period)
+			<-t.C
+			continue
+		}
+		if beatInterval > 0 {
+			beatInfo.Period = time.Duration(time.Millisecond.Nanoseconds() * beatInterval)
 		}
 
 		br.beatRecordMap.Set(k, utils.CurrentMillis())

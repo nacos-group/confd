@@ -22,11 +22,13 @@ type NamingProxy struct {
 func NewNamingProxy(clientCfg constant.ClientConfig, serverCfgs []constant.ServerConfig, httpAgent http_agent.IHttpAgent) (NamingProxy, error) {
 	srvProxy := NamingProxy{}
 	srvProxy.clientConfig = clientCfg
+
 	var err error
-	srvProxy.nacosServer, err = nacos_server.NewNacosServer(serverCfgs, httpAgent, clientCfg.TimeoutMs, clientCfg.Endpoint)
+	srvProxy.nacosServer, err = nacos_server.NewNacosServer(serverCfgs, clientCfg, httpAgent, clientCfg.TimeoutMs, clientCfg.Endpoint)
 	if err != nil {
 		return srvProxy, err
 	}
+
 	return srvProxy, nil
 }
 
@@ -153,5 +155,14 @@ func (proxy *NamingProxy) QueryList(serviceName string, clusters string, udpPort
 	param["healthyOnly"] = strconv.FormatBool(healthyOnly)
 	param["clientIp"] = utils.LocalIP()
 	api := constant.SERVICE_PATH + "/list"
+	return proxy.nacosServer.ReqApi(api, param, http.MethodGet)
+}
+
+func (proxy *NamingProxy) GetAllServiceInfoList(namespace string, groupName string, clusters string) (string, error) {
+	param := make(map[string]string)
+	param["namespaceId"] = proxy.clientConfig.NamespaceId
+	param["clusters"] = clusters
+	param["groupName"] = groupName
+	api := constant.SERVICE_INFO_PATH + "/getAll"
 	return proxy.nacosServer.ReqApi(api, param, http.MethodGet)
 }

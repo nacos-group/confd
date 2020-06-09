@@ -50,13 +50,13 @@ func setConfig(properties map[string]interface{}) (iClient nacos_client.INacosCl
 		if clientConfig, ok := clientConfigTmp.(constant.ClientConfig); ok {
 			err = client.SetClientConfig(clientConfig)
 			if err != nil {
-				return
+				return nil, err
 			}
 		}
 	} else {
 		_ = client.SetClientConfig(constant.ClientConfig{
-			TimeoutMs:      30 * 1000,
-			ListenInterval: 10 * 1000,
+			TimeoutMs:      10 * 1000,
+			ListenInterval: 30 * 1000,
 			BeatInterval:   5 * 1000,
 		})
 	}
@@ -65,7 +65,7 @@ func setConfig(properties map[string]interface{}) (iClient nacos_client.INacosCl
 		if serverConfigs, ok := serverConfigTmp.([]constant.ServerConfig); ok {
 			err = client.SetServerConfig(serverConfigs)
 			if err != nil {
-				return
+				return nil, err
 			}
 		}
 	} else {

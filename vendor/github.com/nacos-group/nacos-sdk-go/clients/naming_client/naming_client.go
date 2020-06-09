@@ -97,11 +97,12 @@ func (sc *NamingClient) DeregisterInstance(param vo.DeregisterInstanceParam) (bo
 	if param.GroupName == "" {
 		param.GroupName = constant.DEFAULT_GROUP
 	}
+	sc.beatReactor.RemoveBeatInfo(utils.GetGroupName(param.ServiceName, param.GroupName), param.Ip, param.Port)
+
 	_, err := sc.serviceProxy.DeregisterInstance(utils.GetGroupName(param.ServiceName, param.GroupName), param.Ip, param.Port, param.Cluster, param.Ephemeral)
 	if err != nil {
 		return false, err
 	}
-	sc.beatReactor.RemoveBeatInfo(utils.GetGroupName(param.ServiceName, param.GroupName), param.Ip, param.Port)
 	return true, nil
 }
 
@@ -111,6 +112,17 @@ func (sc *NamingClient) GetService(param vo.GetServiceParam) (model.Service, err
 		param.GroupName = constant.DEFAULT_GROUP
 	}
 	service := sc.hostReactor.GetServiceInfo(utils.GetGroupName(param.ServiceName, param.GroupName), strings.Join(param.Clusters, ","))
+	return service, nil
+}
+
+func (sc *NamingClient) GetAllServicesInfo(param vo.GetAllServiceInfoParam) ([]model.Service, error) {
+	if param.GroupName == "" {
+		param.GroupName = constant.DEFAULT_GROUP
+	}
+	if param.NameSpace == "" {
+		param.NameSpace = constant.DEFAULT_NAMESPACE_ID
+	}
+	service := sc.hostReactor.GetAllServiceInfo(param.NameSpace, param.GroupName, strings.Join(param.Clusters, ","))
 	return service, nil
 }
 
