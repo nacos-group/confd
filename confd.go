@@ -35,6 +35,7 @@ func main() {
 		if err := template.Process(config.TemplateConfig); err != nil {
 			log.Fatal(err.Error())
 		}
+
 		os.Exit(0)
 	}
 
