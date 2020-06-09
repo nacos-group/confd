@@ -22,11 +22,13 @@ type NamingProxy struct {
 func NewNamingProxy(clientCfg constant.ClientConfig, serverCfgs []constant.ServerConfig, httpAgent http_agent.IHttpAgent) (NamingProxy, error) {
 	srvProxy := NamingProxy{}
 	srvProxy.clientConfig = clientCfg
+
 	var err error
-	srvProxy.nacosServer, err = nacos_server.NewNacosServer(serverCfgs, httpAgent, clientCfg.TimeoutMs, clientCfg.Endpoint)
+	srvProxy.nacosServer, err = nacos_server.NewNacosServer(serverCfgs, clientCfg, httpAgent, clientCfg.TimeoutMs, clientCfg.Endpoint)
 	if err != nil {
 		return srvProxy, err
 	}
+
 	return srvProxy, nil
 }
 

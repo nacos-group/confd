@@ -5,7 +5,6 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/clients/cache"
 	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/utils"
-	nsema "github.com/toolkits/concurrent/semaphore"
 	"log"
 	"reflect"
 	"time"
@@ -66,11 +65,13 @@ func (hr *HostReactor) ProcessServiceJson(result string) {
 	oldDomain, ok := hr.serviceInfoMap.Get(cacheKey)
 	if ok && !hr.updateCacheWhenEmpty {
 		//if instance list is empty,not to update cache
-		if len(result) == 0 {
+		if service.Hosts == nil || len(service.Hosts) == 0 {
 			log.Printf("[ERROR]:do not have useful host, ignore it, name:%s \n", service.Name)
 			return
 		}
 	}
+	hr.updateTimeMap.Set(cacheKey, uint64(utils.CurrentMillis()))
+	hr.serviceInfoMap.Set(cacheKey, *service)
 	if !ok || ok && !reflect.DeepEqual(service.Hosts, oldDomain.(model.Service).Hosts) {
 		if !ok {
 			log.Println("[INFO] service not found in cache " + cacheKey)
@@ -80,8 +81,6 @@ func (hr *HostReactor) ProcessServiceJson(result string) {
 		cache.WriteServicesToFile(*service, hr.cacheDir)
 		hr.subCallback.ServiceChanged(service)
 	}
-	hr.updateTimeMap.Set(cacheKey, uint64(utils.CurrentMillis()))
-	hr.serviceInfoMap.Set(cacheKey, *service)
 }
 
 func (hr *HostReactor) GetServiceInfo(serviceName string, clusters string) model.Service {
@@ -131,7 +130,7 @@ func (hr *HostReactor) updateServiceNow(serviceName string, clusters string) {
 }
 
 func (hr *HostReactor) asyncUpdateService() {
-	sema := nsema.NewSemaphore(hr.updateThreadNum)
+	sema := utils.NewSemaphore(hr.updateThreadNum)
 	for {
 		for _, v := range hr.serviceInfoMap.Items() {
 			service := v.(model.Service)
